@@ -340,7 +340,7 @@ The second identical request returns in < 100ms with 0 LLM calls.
 **4. Langfuse LLM traces:**
 Open http://localhost:3000 → Traces → click any trace.
 - See every Gemini call: prompt, response, token count, cost
-- Compare `research_agent` (gemini-2.5-flash) vs `report_agent` (gemini-2.5-pro)
+- Compare `research_agent` (gemini-3.5-flash) vs `report_agent` (gemini-3.1-pro-preview)
 - The `report_agent` uses the STRONG tier model — it runs once and produces the final report
 
 **5. Scale agent workers:**
@@ -402,7 +402,7 @@ make clean       # stop + remove volumes + images
                                    │  POST /quote /indicators…
                     ┌──────────────▼──────────────┐
                     │  Cloud Run: mcp-server       │  (autoscale 0→N)
-                    │  Vertex AI: gemini-2.5-flash │  (LLM_PROVIDER=vertex_ai)
+                    │  Vertex AI: gemini-3.5-flash │  (LLM_PROVIDER=vertex_ai)
                     └─────────────────────────────┘
 
 Secret Manager ── secrets injected into Cloud Run + GKE as env vars
@@ -503,16 +503,16 @@ gcloud logging read 'resource.type="cloud_run_revision"' \
 ### Model Routing (Cost Optimisation)
 
 ```
-FAST   → gemini-2.5-flash-lite  ← guardrail checks (cheap, near-free)
-MAIN   → gemini-2.5-flash       ← research, technical, sector agents
-STRONG → gemini-2.5-pro         ← report synthesis (once per job, high quality)
+FAST   → gemini-3.1-flash-lite  ← guardrail checks (cheap, near-free)
+MAIN   → gemini-3.5-flash       ← research, technical, sector agents
+STRONG → gemini-3.1-pro-preview         ← report synthesis (once per job, high quality)
 ```
 
 Configured in `packages/shared-config/config.py` via env vars:
 ```bash
-GEMINI_FAST_MODEL=gemini-2.5-flash-lite
-GEMINI_MAIN_MODEL=gemini-2.5-flash
-GEMINI_STRONG_MODEL=gemini-2.5-pro
+GEMINI_FAST_MODEL=gemini-3.1-flash-lite
+GEMINI_MAIN_MODEL=gemini-3.5-flash
+GEMINI_STRONG_MODEL=gemini-3.1-pro-preview
 ```
 
 ### Cost Control

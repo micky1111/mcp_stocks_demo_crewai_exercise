@@ -96,10 +96,10 @@
 **The 4 Agents:**
 | Agent | Job | LLM Model |
 |-------|-----|-----------|
-| 🔍 Research Agent | Find company info & news | gemini-2.5-flash |
-| 📊 Technical Agent | RSI, SMA, EMA indicators | gemini-2.5-flash |
-| 🏭 Sector Agent | Compare vs. peers (MSFT, NVDA…) | gemini-2.5-flash |
-| 📝 Report Writer | Synthesize → final report | gemini-2.5-pro |
+| 🔍 Research Agent | Find company info & news | gemini-3.5-flash |
+| 📊 Technical Agent | RSI, SMA, EMA indicators | gemini-3.5-flash |
+| 🏭 Sector Agent | Compare vs. peers (MSFT, NVDA…) | gemini-3.5-flash |
+| 📝 Report Writer | Synthesize → final report | gemini-3.1-pro-preview |
 
 **The Tools (MCP — Model Context Protocol):**
 - `search` — find a stock symbol by name
@@ -949,7 +949,7 @@ gcloud logging read \
 - Token counts per agent
 - Cost per job
 - Prompt/response for debugging
-- Compare: `gemini-2.5-flash` vs `gemini-2.5-pro` quality/cost tradeoff
+- Compare: `gemini-3.5-flash` vs `gemini-3.1-pro-preview` quality/cost tradeoff
 
 **The `trace_id` thread:**
 > One UUID, set at job submission, flows through every service.
@@ -967,9 +967,9 @@ gcloud logging read \
 
 | Tier | Model | Use case | Cost |
 |------|-------|----------|------|
-| `FAST` | `gemini-2.5-flash-lite` | Guardrail checks, intent classification | ~free |
-| `MAIN` | `gemini-2.5-flash` | Research, Technical, Sector agents | moderate |
-| `STRONG` | `gemini-2.5-pro` | Report synthesis (once per job) | premium |
+| `FAST` | `gemini-3.1-flash-lite` | Guardrail checks, intent classification | ~free |
+| `MAIN` | `gemini-3.5-flash` | Research, Technical, Sector agents | moderate |
+| `STRONG` | `gemini-3.1-pro-preview` | Report synthesis (once per job) | premium |
 
 **The design principle:**
 > Use the cheapest model that produces acceptable quality.
@@ -977,8 +977,8 @@ gcloud logging read \
 
 **Try it in Langfuse:**
 - Click any job trace
-- Find `report_agent` → STRONG model (gemini-2.5-pro)
-- Find `research_agent` → MAIN model (gemini-2.5-flash)
+- Find `report_agent` → STRONG model (gemini-3.1-pro-preview)
+- Find `research_agent` → MAIN model (gemini-3.5-flash)
 - Compare token counts + costs
 
 **Exercise:** Change `report_agent` from STRONG → MAIN. Measure the quality difference.

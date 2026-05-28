@@ -335,8 +335,8 @@ def build_crew(symbol: str, query: str, mcp: MCPClient, guardrail: GuardrailPipe
       - They use Gemini instead of OpenAI
       - Their tools call the MCP server over HTTP (not direct import)
       - The Langfuse callback auto-traces every LLM call
-      - Model routing: all agents use MAIN tier (gemini-2.5-flash)
-        except the report writer uses STRONG tier (gemini-2.5-pro)
+      - Model routing: all agents use MAIN tier (gemini-3.5-flash)
+        except the report writer uses STRONG tier (gemini-3.1-pro-preview)
 
       Pass lf_trace so the CrewAI LLM spans are nested under the
       same job trace in Langfuse (visible as a single trace tree).

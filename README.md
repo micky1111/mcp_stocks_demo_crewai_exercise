@@ -141,9 +141,9 @@ make infra-down  # Destroys GKE + Redis + Cloud SQL (keeps Firestore/Pub/Sub)
 
 ### 1. Gemini Model Routing (Cost Control)
 ```
-FAST  → gemini-2.5-flash-lite   → Guardrail checks, intent classification (~free)
-MAIN  → gemini-2.5-flash        → All 4 agent tasks (research, technical, sector)
-STRONG→ gemini-2.5-pro          → Final report synthesis (used sparingly)
+FAST  → gemini-3.1-flash-lite   → Guardrail checks, intent classification (~free)
+MAIN  → gemini-3.5-flash        → All 4 agent tasks (research, technical, sector)
+STRONG→ gemini-3.1-pro-preview          → Final report synthesis (used sparingly)
 ```
 
 ### 2. Async Job Pattern

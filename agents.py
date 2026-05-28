@@ -62,7 +62,7 @@ def create_agents(
     os.environ["GEMINI_API_KEY"] = gemini_api_key
     from crewai import LLM as CrewLLM
     gemini_llm = CrewLLM(
-        model="gemini/gemini-2.5-flash",
+        model="gemini/gemini-3.5-flash",
         api_key=gemini_api_key,
         temperature=0.0)
  
