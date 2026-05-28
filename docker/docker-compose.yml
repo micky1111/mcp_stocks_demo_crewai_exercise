@@ -29,9 +29,9 @@ x-common-env: &common-env
   # LLM — uses Google AI Studio key locally
   LLM_PROVIDER: google_ai_studio
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-  GEMINI_FAST_MODEL: gemini-2.5-flash-lite
-  GEMINI_MAIN_MODEL: gemini-2.5-flash
-  GEMINI_STRONG_MODEL: gemini-2.5-pro
+  GEMINI_FAST_MODEL: gemini-3.1-flash-lite
+  GEMINI_MAIN_MODEL: gemini-3.5-flash
+  GEMINI_STRONG_MODEL: gemini-3.1-pro-preview
 
   # Service URLs (using Docker internal DNS)
   MCP_SERVER_URL: http://mcp-server:8001

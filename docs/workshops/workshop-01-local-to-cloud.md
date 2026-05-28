@@ -162,9 +162,9 @@ python -m pytest tests/unit/test_guardrails/ -v
 Open `packages/shared-config/config.py`, find `get_llm()`:
 
 ```python
-FAST   → gemini-2.5-flash-lite  (guardrail checks, ~free)
-MAIN   → gemini-2.5-flash       (research, technical, sector agents)
-STRONG → gemini-2.5-pro         (report synthesis — used once per job)
+FAST   → gemini-3.1-flash-lite  (guardrail checks, ~free)
+MAIN   → gemini-3.5-flash       (research, technical, sector agents)
+STRONG → gemini-3.1-pro-preview         (report synthesis — used once per job)
 ```
 
 **Exercise:** In `apps/agent-runtime/worker.py`, find where the report_agent uses `strong_llm`. Change it to `main_llm` and measure the cost difference in Langfuse.

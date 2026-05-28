@@ -35,15 +35,15 @@ class Settings(BaseSettings):
     gemini_api_key: Optional[str] = Field(default=None, alias="GEMINI_API_KEY")
 
     gemini_fast_model: str = Field(
-        default="gemini-2.5-flash-lite", alias="GEMINI_FAST_MODEL",
+        default="gemini-3.1-flash-lite", alias="GEMINI_FAST_MODEL",
         description="Cheap model for guardrails and routing (~$0.00 on free tier)"
     )
     gemini_main_model: str = Field(
-        default="gemini-2.5-flash", alias="GEMINI_MAIN_MODEL",
+        default="gemini-3.5-flash", alias="GEMINI_MAIN_MODEL",
         description="Main model for agent tasks (research, technical, sector)"
     )
     gemini_strong_model: str = Field(
-        default="gemini-2.5-pro", alias="GEMINI_STRONG_MODEL",
+        default="gemini-3.1-pro-preview", alias="GEMINI_STRONG_MODEL",
         description="Powerful model for final synthesis (used sparingly)"
     )
 
@@ -194,9 +194,9 @@ def get_llm(tier: str = "main"):
 
     Teaching note:
       This is the model routing pattern.
-      - "fast"   → gemini-2.5-flash-lite (guardrail checks, intent routing)
-      - "main"   → gemini-2.5-flash      (all 4 agent tasks)
-      - "strong" → gemini-2.5-pro        (final synthesis only)
+      - "fast"   → gemini-3.1-flash-lite (guardrail checks, intent routing)
+      - "main"   → gemini-3.5-flash      (all 4 agent tasks)
+      - "strong" → gemini-3.1-pro-preview        (final synthesis only)
 
       In production (Vertex AI), no API key is needed — Workload Identity
       grants the GKE pod permission to call Vertex AI directly.
@@ -204,37 +204,63 @@ def get_llm(tier: str = "main"):
     settings = get_settings()
     model_name = settings.get_model(tier)
 
-    if settings.use_vertex_ai:
-        try:
-            from langchain_google_vertexai import ChatVertexAI
-            return ChatVertexAI(
-                model_name=model_name,
+    # If CrewAI is installed (e.g. in agent-runtime worker), return its native LLM object
+    # to avoid strict validation / unknown object type errors with raw LangChain objects.
+    try:
+        from crewai import LLM as CrewLLM
+        if settings.use_vertex_ai:
+            return CrewLLM(
+                model=f"vertex_ai/{model_name}",
                 project=settings.gcp_project,
                 location=settings.gcp_region,
-                max_output_tokens=settings.llm_max_tokens,
+                max_tokens=settings.llm_max_tokens,
                 temperature=0.1 if tier == "fast" else 0.2,
             )
-        except ImportError:
-            raise ImportError(
-                "langchain-google-vertexai not installed. "
-                "Run: pip install langchain-google-vertexai"
-            )
-    else:
-        if not settings.gemini_api_key:
-            raise ValueError(
-                "GEMINI_API_KEY is required when LLM_PROVIDER=google_ai_studio. "
-                "Get a free key at: https://aistudio.google.com/apikey"
-            )
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            return ChatGoogleGenerativeAI(
-                model=model_name,
-                google_api_key=settings.gemini_api_key,
-                max_output_tokens=settings.llm_max_tokens,
+        else:
+            if not settings.gemini_api_key:
+                raise ValueError(
+                    "GEMINI_API_KEY is required when LLM_PROVIDER=google_ai_studio. "
+                    "Get a free key at: https://aistudio.google.com/apikey"
+                )
+            return CrewLLM(
+                model=f"gemini/{model_name}",
+                api_key=settings.gemini_api_key,
+                max_tokens=settings.llm_max_tokens,
                 temperature=0.1 if tier == "fast" else 0.2,
             )
-        except ImportError:
-            raise ImportError(
-                "langchain-google-genai not installed. "
-                "Run: pip install langchain-google-genai"
-            )
+    except ImportError:
+        # CrewAI is not available (e.g. minimal mcp-server container), return raw LangChain object.
+        if settings.use_vertex_ai:
+            try:
+                from langchain_google_vertexai import ChatVertexAI
+                return ChatVertexAI(
+                    model_name=model_name,
+                    project=settings.gcp_project,
+                    location=settings.gcp_region,
+                    max_output_tokens=settings.llm_max_tokens,
+                    temperature=0.1 if tier == "fast" else 0.2,
+                )
+            except ImportError:
+                raise ImportError(
+                    "langchain-google-vertexai not installed. "
+                    "Run: pip install langchain-google-vertexai"
+                )
+        else:
+            if not settings.gemini_api_key:
+                raise ValueError(
+                    "GEMINI_API_KEY is required when LLM_PROVIDER=google_ai_studio. "
+                    "Get a free key at: https://aistudio.google.com/apikey"
+                )
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                return ChatGoogleGenerativeAI(
+                    model=model_name,
+                    google_api_key=settings.gemini_api_key,
+                    max_output_tokens=settings.llm_max_tokens,
+                    temperature=0.1 if tier == "fast" else 0.2,
+                )
+            except ImportError:
+                raise ImportError(
+                    "langchain-google-genai not installed. "
+                    "Run: pip install langchain-google-genai"
+                )

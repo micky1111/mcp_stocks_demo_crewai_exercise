@@ -311,7 +311,7 @@ def explain(
     """
     LLM explanation of the current technical snapshot with guardrails.
     Returns a JSON object: {"text": "...", "rationale": [...], "disclaimers": "..."}.
-    Uses Gemini (gemini-2.5-flash) instead of OpenAI.
+    Uses Gemini (gemini-3.5-flash) instead of OpenAI.
     """
     import json as _json
 
@@ -334,7 +334,7 @@ def explain(
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-3.5-flash",
             google_api_key=gemini_api_key,
             temperature=0.2,
         )

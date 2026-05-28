@@ -86,17 +86,17 @@ class TestJobStatusResponse:
 class TestUsageRecord:
     def test_add_usage(self):
         usage = UsageRecord()
-        usage.add("gemini-2.5-flash", 1000, 500, 0.001)
+        usage.add("gemini-3.5-flash", 1000, 500, 0.001)
         assert usage.total_input_tokens == 1000
         assert usage.total_output_tokens == 500
         assert usage.total_tokens == 1500
         assert usage.estimated_cost_usd == 0.001
-        assert "gemini-2.5-flash" in usage.model_usage
+        assert "gemini-3.5-flash" in usage.model_usage
 
     def test_accumulate_usage(self):
         usage = UsageRecord()
-        usage.add("gemini-2.5-flash", 1000, 500, 0.001)
-        usage.add("gemini-2.5-flash", 2000, 1000, 0.002)
+        usage.add("gemini-3.5-flash", 1000, 500, 0.001)
+        usage.add("gemini-3.5-flash", 2000, 1000, 0.002)
         assert usage.total_tokens == 4500
         assert round(usage.estimated_cost_usd, 6) == 0.003
 
