@@ -8,6 +8,12 @@ import pandas as pd
 from typing import Dict, Any, List
 from datetime import datetime
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass
+
 from mcp.server.fastmcp import FastMCP
 
 try:
@@ -321,23 +327,49 @@ def explain(
         except Exception:
             return {}
 
-    if not gemini_api_key:
-        return json.dumps({
-            "error": "gemini_api_key_required",
-            "message": "Gemini API key is required for LLM explanations"
-        })
+    llm_provider = os.environ.get("LLM_PROVIDER", "google_ai_studio")
+    use_vertex = (llm_provider == "vertex_ai") or (not gemini_api_key)
 
     ind = _safe_json(indicators(symbol))
     evt = _safe_json(detect_events(symbol))
 
     try:
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        if use_vertex:
+            # Clear Google/Gemini API key env vars to prevent Google SDK from getting confused and bypassing ADC
+            os.environ.pop("GEMINI_API_KEY", None)
+            os.environ.pop("GOOGLE_API_KEY", None)
+            
+            # Force system environment variables to global for LiteLLM and LangChain Vertex AI compatibility
+            vertex_loc = os.environ.get("VERTEX_LOCATION", "global")
+            os.environ["VERTEX_LOCATION"] = vertex_loc
+            os.environ["VERTEX_AI_LOCATION"] = vertex_loc
+            os.environ["VERTEX_API_LOCATION"] = vertex_loc
 
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-3.5-flash",
-            google_api_key=gemini_api_key,
-            temperature=0.2,
-        )
+            gcp_project = os.environ.get("GCP_PROJECT", "local-project")
+            try:
+                from langchain_google_vertexai import ChatVertexAI
+                llm = ChatVertexAI(
+                    model_name="gemini-3.5-flash",
+                    project=gcp_project,
+                    location=vertex_loc,
+                    temperature=0.2,
+                )
+            except ImportError:
+                raise ImportError(
+                    "langchain-google-vertexai not installed. Run: pip install langchain-google-vertexai"
+                )
+        else:
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                llm = ChatGoogleGenerativeAI(
+                    model="gemini-3.5-flash",
+                    google_api_key=gemini_api_key,
+                    temperature=0.2,
+                )
+            except ImportError:
+                raise ImportError(
+                    "langchain-google-genai not installed. Run: pip install langchain-google-genai"
+                )
 
         bullet_note = "Return 3-5 bullet points." if bullets else "Return 2-3 short paragraphs."
         prompt_text = (

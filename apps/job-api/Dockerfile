@@ -3,7 +3,8 @@ FROM python:3.11-slim AS builder
 WORKDIR /build
 # Build context is repo root (context: .. in docker-compose.yml)
 COPY apps/job-api/requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --user -r requirements.txt
 
 FROM python:3.11-slim AS runtime
 RUN useradd -m -u 1000 appuser

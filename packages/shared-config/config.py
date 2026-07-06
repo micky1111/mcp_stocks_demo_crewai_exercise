@@ -188,6 +188,11 @@ def get_settings() -> Settings:
     return Settings()
 
 
+def _map_vertex_model_name(model_name: str) -> str:
+    """Pass the model name through directly without any fallback mapping."""
+    return model_name
+
+
 def get_llm(tier: str = "main"):
     """
     Factory function that returns the appropriate LLM instance.
@@ -203,6 +208,13 @@ def get_llm(tier: str = "main"):
     """
     settings = get_settings()
     model_name = settings.get_model(tier)
+    if settings.use_vertex_ai:
+        model_name = _map_vertex_model_name(model_name)
+        # Force system environment variables to global for LiteLLM and LangChain Vertex AI compatibility
+        vertex_loc = os.environ.get("VERTEX_LOCATION", "global")
+        os.environ["VERTEX_LOCATION"] = vertex_loc
+        os.environ["VERTEX_AI_LOCATION"] = vertex_loc
+        os.environ["VERTEX_API_LOCATION"] = vertex_loc
 
     # If CrewAI is installed (e.g. in agent-runtime worker), return its native LLM object
     # to avoid strict validation / unknown object type errors with raw LangChain objects.
@@ -211,8 +223,8 @@ def get_llm(tier: str = "main"):
         if settings.use_vertex_ai:
             return CrewLLM(
                 model=f"vertex_ai/{model_name}",
-                project=settings.gcp_project,
-                location=settings.gcp_region,
+                vertex_project=settings.gcp_project,
+                vertex_location=os.environ.get("VERTEX_LOCATION", "global"),
                 max_tokens=settings.llm_max_tokens,
                 temperature=0.1 if tier == "fast" else 0.2,
             )
@@ -236,7 +248,7 @@ def get_llm(tier: str = "main"):
                 return ChatVertexAI(
                     model_name=model_name,
                     project=settings.gcp_project,
-                    location=settings.gcp_region,
+                    location=os.environ.get("VERTEX_LOCATION", "global"),
                     max_output_tokens=settings.llm_max_tokens,
                     temperature=0.1 if tier == "fast" else 0.2,
                 )

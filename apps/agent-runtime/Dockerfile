@@ -5,7 +5,8 @@ WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ && rm -rf /var/lib/apt/lists/*
 # Build context is repo root (context: .. in docker-compose.yml)
 COPY apps/agent-runtime/requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --user -r requirements.txt
 
 FROM python:3.11-slim AS runtime
 RUN useradd -m -u 1000 appuser
