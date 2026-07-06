@@ -16,6 +16,12 @@ import requests
 from datetime import datetime
 
 try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass
+
+try:
     from agents import run_crewai_analysis, CREWAI_AVAILABLE
 except ImportError:
     CREWAI_AVAILABLE = False
@@ -131,25 +137,44 @@ def main():
         
         st.markdown("---")
         
-        st.subheader("🔑 Gemini API Key")
-        gemini_api_key = st.text_input(
-            "Enter your Gemini API Key",
-            value=st.session_state.get("gemini_api_key", ""),
-            type="password",
-            help="Get a free key at https://aistudio.google.com/apikey"
+        st.subheader("🤖 LLM Provider")
+        env_provider = os.environ.get("LLM_PROVIDER", "google_ai_studio")
+        provider_options = ["Google AI Studio (API Key)", "Vertex AI (Google ADC)"]
+        default_index = 1 if env_provider == "vertex_ai" else 0
+        
+        selected_provider = st.selectbox(
+            "Select LLM Provider",
+            options=provider_options,
+            index=default_index,
+            help="Choose 'Vertex AI' to use Application Default Credentials (ADC) without an API key."
         )
-        if gemini_api_key:
-            st.session_state["gemini_api_key"] = gemini_api_key
-            st.success("✅ API Key Set")
+        
+        llm_provider = "vertex_ai" if selected_provider == "Vertex AI (Google ADC)" else "google_ai_studio"
+        os.environ["LLM_PROVIDER"] = llm_provider
+        is_vertex_ai = llm_provider == "vertex_ai"
+        
+        if is_vertex_ai:
+            st.success("✅ Using Vertex AI (Google ADC)")
+            gemini_api_key = ""
         else:
-            st.warning("⚠️ API Key Required")
+            gemini_api_key = st.text_input(
+                "Enter your Gemini API Key",
+                value=st.session_state.get("gemini_api_key", ""),
+                type="password",
+                help="Get a free key at https://aistudio.google.com/apikey"
+            )
+            if gemini_api_key:
+                st.session_state["gemini_api_key"] = gemini_api_key
+                st.success("✅ API Key Set")
+            else:
+                st.warning("⚠️ API Key Required")
         
     
     if not CREWAI_AVAILABLE:
         st.error("CrewAI is not installed. Please install it using the command in the sidebar.")
         return
     
-    if not gemini_api_key:
+    if not is_vertex_ai and not gemini_api_key:
         st.warning("Please enter your Gemini API key in the sidebar to enable LLM explanations.")
     
     st.header("📊 Stock Selection")
@@ -248,7 +273,8 @@ def main():
                 del st.session_state[key]
         st.rerun()
     
-    if run_analysis and symbol and gemini_api_key and not st.session_state.get("analysis_running", False):
+    has_credentials = is_vertex_ai or bool(gemini_api_key)
+    if run_analysis and symbol and has_credentials and not st.session_state.get("analysis_running", False):
         st.session_state["analysis_running"] = True
         
         progress_container = st.container()

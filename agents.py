@@ -16,6 +16,12 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, Callable
 
 try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass
+
+try:
     from crewai import Agent, Task, Crew, Process
     CREWAI_AVAILABLE = True
 except ImportError:
@@ -37,7 +43,7 @@ except ImportError:
         return []
 
 def create_agents(
-    gemini_api_key: str,
+    gemini_api_key: str = "",
     research_tools: Optional[List[str]] = None,
     technical_tools: Optional[List[str]] = None,
     sector_tools: Optional[List[str]] = None,
@@ -47,7 +53,7 @@ def create_agents(
     Create CrewAI agents with configurable tools.
 
     Args:
-        gemini_api_key: Gemini API key for LLM calls
+        gemini_api_key: Gemini API key for LLM calls (optional if using LLM_PROVIDER=vertex_ai)
         research_tools: List of tool names for research agent
         technical_tools: List of tool names for technical agent
         sector_tools: List of tool names for sector agent
@@ -59,12 +65,36 @@ def create_agents(
     if not CREWAI_AVAILABLE:
         return {}
 
-    os.environ["GEMINI_API_KEY"] = gemini_api_key
+    llm_provider = os.environ.get("LLM_PROVIDER", "google_ai_studio")
     from crewai import LLM as CrewLLM
-    gemini_llm = CrewLLM(
-        model="gemini/gemini-3.5-flash",
-        api_key=gemini_api_key,
-        temperature=0.0)
+    
+    gcp_project = os.environ.get("GCP_PROJECT", "local-project")
+    gcp_region = os.environ.get("GCP_REGION", "us-central1")
+
+    if llm_provider == "vertex_ai" or not gemini_api_key:
+        # Clear Google/Gemini API key env vars to prevent Google SDK from getting confused and bypassing ADC
+        os.environ.pop("GEMINI_API_KEY", None)
+        os.environ.pop("GOOGLE_API_KEY", None)
+        
+        # Force system environment variables to global for LiteLLM and LangChain Vertex AI compatibility
+        vertex_loc = os.environ.get("VERTEX_LOCATION", "global")
+        os.environ["VERTEX_LOCATION"] = vertex_loc
+        os.environ["VERTEX_AI_LOCATION"] = vertex_loc
+        os.environ["VERTEX_API_LOCATION"] = vertex_loc
+
+        gemini_llm = CrewLLM(
+            model="vertex_ai/gemini-3.5-flash",
+            vertex_project=gcp_project,
+            vertex_location=vertex_loc,
+            temperature=0.0
+        )
+    else:
+        os.environ["GEMINI_API_KEY"] = gemini_api_key
+        gemini_llm = CrewLLM(
+            model="gemini/gemini-3.5-flash",
+            api_key=gemini_api_key,
+            temperature=0.0
+        )
  
     if research_tools is None:
         research_tools = ["search_symbols", "get_quote", "get_price_series"]
@@ -138,7 +168,7 @@ def create_agents(
 
 def create_tasks(
     symbol: str,
-    gemini_api_key: str,
+    gemini_api_key: str = "",
     research_tools: Optional[List[str]] = None,
     technical_tools: Optional[List[str]] = None,
     sector_tools: Optional[List[str]] = None
@@ -148,7 +178,7 @@ def create_tasks(
 
     Args:
         symbol: Stock symbol to analyze
-        gemini_api_key: Gemini API key (passed to explanation tool)
+        gemini_api_key: Gemini API key (passed to explanation tool) (optional if using LLM_PROVIDER=vertex_ai)
         research_tools: List of tool names for research task
         technical_tools: List of tool names for technical task
         sector_tools: List of tool names for sector task
@@ -274,7 +304,7 @@ def create_tasks(
 
 def run_crewai_analysis(
     symbol: str,
-    gemini_api_key: str,
+    gemini_api_key: str = "",
     progress_callback: Optional[Callable[[str, Optional[int]], None]] = None,
     verbose_callback: Optional[Callable[[str], None]] = None,
     research_tools: Optional[List[str]] = None,
@@ -287,20 +317,25 @@ def run_crewai_analysis(
         return {"error": "CrewAI not available"}
 
     gemini_api_key = gemini_api_key.strip() if gemini_api_key else ""
+    llm_provider = os.environ.get("LLM_PROVIDER", "google_ai_studio")
 
-    if not gemini_api_key:
+    if llm_provider != "vertex_ai" and not gemini_api_key:
         env_api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
         if env_api_key:
             gemini_api_key = env_api_key
         else:
             return {
                 "success": False,
-                "error": "Gemini API key is required. Please enter it in the sidebar.",
+                "error": "Gemini API key is required. Please enter it in the sidebar or configure LLM_PROVIDER=vertex_ai to use application default credentials.",
                 "timestamp": datetime.now().isoformat(),
                 "symbol": symbol
             }
 
-    os.environ["GOOGLE_API_KEY"] = gemini_api_key
+    if llm_provider == "vertex_ai":
+        os.environ.pop("GEMINI_API_KEY", None)
+        os.environ.pop("GOOGLE_API_KEY", None)
+    elif gemini_api_key:
+        os.environ["GOOGLE_API_KEY"] = gemini_api_key
 
     try:
         from mcp_server import clear_tool_trace

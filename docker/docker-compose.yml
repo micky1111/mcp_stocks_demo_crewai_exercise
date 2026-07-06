@@ -26,8 +26,13 @@ x-common-env: &common-env
   LOG_FORMAT: text           # Human-readable for local dev
   ENVIRONMENT: local
 
+  # GCP Configuration
+  GCP_PROJECT: ${GCP_PROJECT:-local-project}
+  GCP_REGION: ${GCP_REGION:-us-central1}
+  VERTEX_LOCATION: ${VERTEX_LOCATION:-global}
+
   # LLM — uses Google AI Studio key locally
-  LLM_PROVIDER: google_ai_studio
+  LLM_PROVIDER: ${LLM_PROVIDER:-google_ai_studio}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   GEMINI_FAST_MODEL: gemini-3.1-flash-lite
   GEMINI_MAIN_MODEL: gemini-3.5-flash
@@ -217,6 +222,8 @@ services:
       <<: *common-env
       SERVICE_NAME: mcp-server
       PORT: "8001"
+    volumes:
+      - ~/.config/gcloud:/home/appuser/.config/gcloud:ro
     networks:
       - stock-agent-net
     healthcheck:
@@ -238,6 +245,8 @@ services:
       <<: *common-env
       SERVICE_NAME: job-api
       PORT: "8000"
+    volumes:
+      - ~/.config/gcloud:/home/appuser/.config/gcloud:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -264,6 +273,8 @@ services:
       <<: *common-env
       SERVICE_NAME: agent-runtime
       WORKER_MODE: pubsub
+    volumes:
+      - ~/.config/gcloud:/home/appuser/.config/gcloud:ro
     depends_on:
       mcp-server:
         condition: service_healthy
