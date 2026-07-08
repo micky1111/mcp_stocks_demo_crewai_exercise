@@ -17,4 +17,5 @@ matplotlib
 crewai==1.10.1
 langchain==1.2.12
 langchain-google-genai==4.2.1
+litellm>=1.0
 
